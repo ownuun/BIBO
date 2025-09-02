@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 
 export function HeroSection() {
     // Back1 및 사진 제어 상수
@@ -29,6 +29,8 @@ export function HeroSection() {
     const [quotesTyping, setQuotesTyping] = useState(0);
     // Scroll-proportional opacity for photos
     const [photosOpacity, setPhotosOpacity] = useState(0);
+    const photosFadeOutTimerRef = useRef<number | null>(null);
+    const back3CheckTimerRef = useRef<number | null>(null);
 
     useEffect(() => {
         const handleScroll = () => {
@@ -84,37 +86,7 @@ export function HeroSection() {
                 }
             }
 
-            // 사진이 나타난 후 충분한 시간 경과하고 opacity가 완전히 1이 된 후에만 페이드아웃
-            if (showPhotos && photosShowTime && photosOpacity >= 1.0) {
-                const timeElapsed = Date.now() - photosShowTime;
-                if (timeElapsed >= 3000 && !photosAnimatingOut && !quotesAnimatingOut) { // 3초 이상 경과 (사진을 충분히 보여주기)
-                    setPhotosAnimatingOut(true);
-                    // 페이드아웃 애니메이션 완료 후 사진만 숨김 (배경은 유지)
-                    setTimeout(() => {
-                        setShowPhotos(false);
-                        setPhotosAnimatingOut(false);
-                        setPhotosShowTime(null);
-                        setPhotosHidden(true); // 사진을 영구적으로 숨김
-                        setBackgroundOnlyTime(Date.now()); // 배경만 보이기 시작한 시간 기록
-                        setBack1OnlyTime(Date.now()); // back1만 보이기 시작한 시간 기록
-                    }, 800); // 애니메이션 지속시간과 일치
-                }
-            }
-
-            // back3으로 전환 - back1에서 1초 대기 후
-            if (scrollY > 1600 && !showBack3 && back1OnlyTime) {
-                const back1TimeElapsed = Date.now() - back1OnlyTime;
-                if (back1TimeElapsed >= 1000) { // back1에서 1초 이상 대기
-                    console.log('back3으로 전환! scrollY:', scrollY, 'back1 대기시간:', back1TimeElapsed);
-                    setShowBack3(true);
-                    // back3 슬라이드 애니메이션 완료 후 텍스트 표시
-                    setTimeout(() => {
-                        setShowFinalText(true);
-                    }, 1200); // 슬라이드 애니메이션 지속시간과 일치
-                } else {
-                    console.log('back1에서 대기 중... 남은 시간:', 1000 - back1TimeElapsed);
-                }
-            }
+            // back3으로 전환 트리거는 아래 useEffect에서 시간/하단 근접 여부로도 점검
 
             // back3에서 위로 스크롤할 때 back1으로 돌아가기
             if (showBack3 && scrollY <= 1500 && !back3AnimatingOut) {
@@ -146,6 +118,71 @@ export function HeroSection() {
         window.addEventListener('scroll', handleScroll);
         return () => window.removeEventListener('scroll', handleScroll);
     }, [typingComplete, showQuotes, showPhotos, photosAnimatingOut, quotesAnimatingOut, photosShowTime, quotesHidden, backgroundOnlyTime, showBack3, photosHidden, back1OnlyTime, back3AnimatingOut, showFinalText]);
+
+    // 사진 페이드아웃을 스크롤 이벤트와 무관하게 보장 (opacity=1 이후 3초 체류)
+    useEffect(() => {
+        if (showPhotos && photosShowTime && photosOpacity >= 1 && !photosAnimatingOut && !quotesAnimatingOut && !photosHidden) {
+            if (!photosFadeOutTimerRef.current) {
+                photosFadeOutTimerRef.current = window.setTimeout(() => {
+                    setPhotosAnimatingOut(true);
+                    setTimeout(() => {
+                        setShowPhotos(false);
+                        setPhotosAnimatingOut(false);
+                        setPhotosShowTime(null);
+                        setPhotosHidden(true);
+                        setBackgroundOnlyTime(Date.now());
+                        setBack1OnlyTime(Date.now());
+                    }, 800);
+                    photosFadeOutTimerRef.current = null;
+                }, 3000);
+            }
+        } else {
+            if (photosFadeOutTimerRef.current) {
+                clearTimeout(photosFadeOutTimerRef.current);
+                photosFadeOutTimerRef.current = null;
+            }
+        }
+        return () => {
+            if (photosFadeOutTimerRef.current) {
+                clearTimeout(photosFadeOutTimerRef.current);
+                photosFadeOutTimerRef.current = null;
+            }
+        };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [showPhotos, photosShowTime, photosOpacity, photosAnimatingOut, quotesAnimatingOut, photosHidden]);
+
+    // back3 전환 보장: back1OnlyTime 이후 1초 경과 시, 하단 근접 또는 충분히 내려왔으면 전환
+    useEffect(() => {
+        if (!showBack3 && back1OnlyTime) {
+            const check = () => {
+                const elapsed = Date.now() - back1OnlyTime;
+                const maxScrollableY = Math.max(0, (document.documentElement.scrollHeight || document.body.scrollHeight) - window.innerHeight);
+                const nearBottom = maxScrollableY - window.scrollY < 10; // 하단 근접
+                if (elapsed >= 1000 && (nearBottom || window.scrollY > BACK1_END + 50)) {
+                    setShowBack3(true);
+                    setTimeout(() => setShowFinalText(true), 1200);
+                    return true;
+                }
+                return false;
+            };
+            if (!check()) {
+                const id = window.setInterval(() => {
+                    if (check()) {
+                        if (back3CheckTimerRef.current) clearInterval(back3CheckTimerRef.current);
+                    }
+                }, 100);
+                back3CheckTimerRef.current = id as unknown as number;
+                return () => clearInterval(id);
+            }
+        }
+        return () => {
+            if (back3CheckTimerRef.current) {
+                clearInterval(back3CheckTimerRef.current);
+                back3CheckTimerRef.current = null;
+            }
+        };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [back1OnlyTime, showBack3]);
 
 
 
@@ -461,8 +498,8 @@ export function HeroSection() {
                     )}
                 </section>
 
-                {/* 스크롤 공간 확보를 위한 더미 div */}
-                <div className="h-[300vh]"></div>
+                {/* 스크롤 공간 확보를 위한 더미 div (확대) */}
+                <div className="h-[600vh]"></div>
             </div>
         </>
     );
