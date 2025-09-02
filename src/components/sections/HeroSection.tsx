@@ -3,6 +3,12 @@
 import { useState, useEffect } from 'react';
 
 export function HeroSection() {
+    // Back1 및 사진 제어 상수
+    const BACK1_START = 500;
+    const BACK1_END = 1500; // 타이핑 구간 확장 반영
+    const PHOTO_START_PROGRESS = 0.98; // 타이핑 완료 후 충분한 간격 확보
+    const PHOTO_FADE_END_Y = 4800; // 사진 페이드인 완료 Y (더 느리게: 더 긴 거리)
+
     const [isScrolled, setIsScrolled] = useState(false);
     const [showContent, setShowContent] = useState(false);
     const [showQuotes, setShowQuotes] = useState(false);
@@ -18,6 +24,11 @@ export function HeroSection() {
     const [back1OnlyTime, setBack1OnlyTime] = useState<number | null>(null);
     const [back3AnimatingOut, setBack3AnimatingOut] = useState(false);
     const [showFinalText, setShowFinalText] = useState(false);
+    // Scroll-proportional fade and typing for quotes
+    const [quotesFade, setQuotesFade] = useState(0);
+    const [quotesTyping, setQuotesTyping] = useState(0);
+    // Scroll-proportional opacity for photos
+    const [photosOpacity, setPhotosOpacity] = useState(0);
 
     useEffect(() => {
         const handleScroll = () => {
@@ -30,43 +41,59 @@ export function HeroSection() {
             // 스크롤 상태에 따라 콘텐츠 표시/숨김
             setShowContent(scrolled);
 
+            // back1 진행도 및 명언 컨테이너 페이드/타이핑 진행도 계산
+            const sectionStart = BACK1_START; // back1 시작 기준
+            const sectionEnd = BACK1_END;  // back1 종료 기준(확대)
+            const span = sectionEnd - sectionStart;
+            const raw = (scrollY - sectionStart) / span;
+            const p = Math.max(0, Math.min(1, raw)); // 0~1 정규화
+            const fade = Math.max(0, Math.min(1, (p - 0.05) / 0.10)); // 0.05~0.15 → 0~1
+            const typing = Math.max(0, Math.min(1, (p - 0.05) / 0.90)); // 0.05~0.95 → 0~1
+            setQuotesFade(fade);
+            setQuotesTyping(typing);
+
+            // 사진 스크롤-비례 페이드인(그 자리에서 선명해짐)
+            // 끝 지점이 너무 멀어 도달 불가해지는 문제를 방지하기 위해 현재 페이지의 최대 스크롤 한계 내로 클램핑
+            const photoFadeStartY = BACK1_START + (BACK1_END - BACK1_START) * PHOTO_START_PROGRESS; // 약 1480
+            const maxScrollableY = Math.max(
+                0,
+                (document.documentElement.scrollHeight || document.body.scrollHeight) - window.innerHeight
+            );
+            const photoFadeEndY = Math.min(
+                PHOTO_FADE_END_Y,
+                Math.max(BACK1_END + 100, maxScrollableY - 50)
+            );
+            const photosOpacityProgress = Math.max(
+                0,
+                Math.min(1, (scrollY - photoFadeStartY) / Math.max(1, photoFadeEndY - photoFadeStartY))
+            );
+            setPhotosOpacity(photosOpacityProgress);
+
             // 타이핑이 완료된 후에만 명언 섹션 표시 가능 (한번 숨겨지면 다시 나타나지 않음)
             if (typingComplete && !quotesHidden) {
                 setShowQuotes(scrollY > 500);
             }
 
-            // 명언들이 표시된 후 더 스크롤하면 사진들이 등장 (한번 숨겨지면 다시 나타나지 않음)
-            if (showQuotes && scrollY > 800 && !photosHidden) {
-                if (!showPhotos) {
+            // 명언 타이핑 완료 + 진행도 임계 이상일 때 사진 1회 등장(섹션 내 고정)
+            if (showQuotes && !photosHidden && !showPhotos) {
+                const canShowPhotos = typing >= 1 && p >= PHOTO_START_PROGRESS;
+                if (canShowPhotos) {
                     setPhotosAnimatingOut(false);
                     setShowPhotos(true);
                     setPhotosShowTime(Date.now()); // 사진이 나타난 시간 기록
                 }
-            } else if (scrollY <= 800 && !photosHidden) {
-                if (showPhotos && !photosAnimatingOut) {
-                    setPhotosAnimatingOut(true);
-                    // 페이드아웃 애니메이션 완료 후 숨김
-                    setTimeout(() => {
-                        setShowPhotos(false);
-                        setPhotosAnimatingOut(false);
-                        setPhotosShowTime(null);
-                    }, 800); // 애니메이션 지속시간과 일치
-                }
             }
 
-            // 사진이 나타난 후 1초 이상 경과하고 더 스크롤하면 사진과 명언 텍스트 페이드아웃
-            if (showPhotos && photosShowTime && scrollY > 1200) {
+            // 사진이 나타난 후 충분한 시간 경과하고 opacity가 완전히 1이 된 후에만 페이드아웃
+            if (showPhotos && photosShowTime && photosOpacity >= 1.0) {
                 const timeElapsed = Date.now() - photosShowTime;
-                if (timeElapsed >= 1000 && !photosAnimatingOut && !quotesAnimatingOut) { // 1초 이상 경과
+                if (timeElapsed >= 3000 && !photosAnimatingOut && !quotesAnimatingOut) { // 3초 이상 경과 (사진을 충분히 보여주기)
                     setPhotosAnimatingOut(true);
-                    setQuotesAnimatingOut(true);
-                    // 페이드아웃 애니메이션 완료 후 사진과 명언 텍스트 숨김 (배경은 유지)
+                    // 페이드아웃 애니메이션 완료 후 사진만 숨김 (배경은 유지)
                     setTimeout(() => {
                         setShowPhotos(false);
                         setPhotosAnimatingOut(false);
-                        setQuotesAnimatingOut(false);
                         setPhotosShowTime(null);
-                        setQuotesHidden(true); // 명언을 영구적으로 숨김
                         setPhotosHidden(true); // 사진을 영구적으로 숨김
                         setBackgroundOnlyTime(Date.now()); // 배경만 보이기 시작한 시간 기록
                         setBack1OnlyTime(Date.now()); // back1만 보이기 시작한 시간 기록
@@ -102,18 +129,18 @@ export function HeroSection() {
                 }, 1000); // 애니메이션 지속시간과 일치
             }
 
-            // back1 배경에서 위로 스크롤할 때 사진과 명언 복원
-            if (quotesHidden && photosHidden && scrollY <= 1200 && backgroundOnlyTime) {
+            // back1 배경에서 위로 스크롤할 때 사진 복원 (명언은 항상 유지)
+            if (/* quotesHidden && */ photosHidden && scrollY <= BACK1_END && backgroundOnlyTime) {
                 const backgroundTimeElapsed = Date.now() - backgroundOnlyTime;
                 if (backgroundTimeElapsed >= 1000) { // 배경에서 1초 이상 대기했었다면
-                    setQuotesHidden(false);
                     setPhotosHidden(false);
                     setBackgroundOnlyTime(null);
                     setBack1OnlyTime(null); // back1 대기 시간도 초기화
-                    setQuotesAnimatingOut(false);
                     setPhotosAnimatingOut(false);
                 }
             }
+
+            // 위에서 진행도 계산 및 상태 반영 완료
         };
 
         window.addEventListener('scroll', handleScroll);
@@ -196,53 +223,158 @@ export function HeroSection() {
                         zIndex: 5
                     }}
                 >
-                    {/* 가벼운 오버레이 */}
-                    <div className="absolute inset-0 bg-black bg-opacity-20"></div>
+                    {/* 4개 명언 분산 배치 (타이핑) */}
+                    <div className="relative z-10 w-full h-screen px-4" style={{ opacity: quotesFade }}>
+                        {/* Desktop 2x2 고정 위치 */}
+                        <div className="hidden md:block">
+                            {/* 첫 번째 명언 - 좌상단 */}
+                            <div className="absolute top-56 left-[240px] max-w-2xl">
+                                <blockquote className="text-white text-xl md:text-2xl lg:text-3xl leading-relaxed font-crayons">
+                                    {(() => {
+                                        const lines = [
+                                            '"Being the richest man in the cemetery',
+                                            "doesn't matter to me. Going to bed at",
+                                            "night saying we've done something",
+                                            "wonderful... that's what matters to me.",
+                                        ];
+                                        const full = lines.join('\n');
+                                        const cut = Math.floor(full.length * quotesTyping);
+                                        const visible = full.slice(0, cut).split('\n');
+                                        return (
+                                            <span>
+                                                {visible.map((line, i) => (
+                                                    <span key={i}>
+                                                        {line}
+                                                        {i < visible.length - 1 ? <br /> : null}
+                                                    </span>
+                                                ))}
+                                            </span>
+                                        );
+                                    })()}
+                                </blockquote>
+                            </div>
 
-                    {/* 4개 명언 분산 배치 */}
-                    <div className="relative z-10 w-full h-screen px-4">
-                        {!quotesHidden && (
-                            <>
-                                {/* 첫 번째 명언 - 좌상단 */}
-                                <div className={`absolute top-56 left-[240px] max-w-2xl ${quotesAnimatingOut ? 'animate-fade-out' : 'animate-fade-in'}`}>
-                                    <blockquote className="text-white text-xl md:text-2xl lg:text-3xl leading-relaxed font-crayons">
-                                        "Being the richest man in the cemetery<br />
-                                        doesn't matter to me. Going to bed at<br />
-                                        night saying we've done something<br />
-                                        wonderful... that's what matters to me."
-                                    </blockquote>
-                                </div>
+                            {/* 두 번째 명언 - 우상단 */}
+                            <div className="absolute top-[260px] right-[400px] max-w-2xl">
+                                <blockquote className="text-white text-xl md:text-2xl lg:text-3xl leading-relaxed font-crayons">
+                                    {(() => {
+                                        const lines = [
+                                            '"I\'d rather be optimistic and wrong',
+                                            'than pessimistic and right."',
+                                        ];
+                                        const full = lines.join('\n');
+                                        const cut = Math.floor(full.length * quotesTyping);
+                                        const visible = full.slice(0, cut).split('\n');
+                                        return (
+                                            <span>
+                                                {visible.map((line, i) => (
+                                                    <span key={i}>
+                                                        {line}
+                                                        {i < visible.length - 1 ? <br /> : null}
+                                                    </span>
+                                                ))}
+                                            </span>
+                                        );
+                                    })()}
+                                </blockquote>
+                            </div>
 
-                                {/* 두 번째 명언 - 우상단 */}
-                                <div className={`absolute top-[260px] right-[400px] max-w-2xl ${quotesAnimatingOut ? 'animate-fade-out' : 'animate-fade-in'}`} style={{ animationDelay: quotesAnimatingOut ? '0s' : '0.2s' }}>
-                                    <blockquote className="text-white text-xl md:text-2xl lg:text-3xl leading-relaxed font-crayons">
-                                        "I'd rather be optimistic and wrong<br />
-                                        than pessimistic and right."
-                                    </blockquote>
-                                </div>
+                            {/* 세 번째 명언 - 좌하단 */}
+                            <div className="absolute bottom-[200px] left-[240px] max-w-2xl">
+                                <blockquote className="text-white text-xl md:text-2xl lg:text-3xl leading-relaxed font-crayons">
+                                    {(() => {
+                                        const lines = [
+                                            '"The biggest risk is not taking any risk"',
+                                        ];
+                                        const full = lines.join('\n');
+                                        const cut = Math.floor(full.length * quotesTyping);
+                                        const visible = full.slice(0, cut).split('\n');
+                                        return (
+                                            <span>
+                                                {visible.map((line, i) => (
+                                                    <span key={i}>{line}</span>
+                                                ))}
+                                            </span>
+                                        );
+                                    })()}
+                                </blockquote>
+                            </div>
 
-                                {/* 세 번째 명언 - 좌하단 */}
-                                <div className={`absolute bottom-[200px] left-[240px] max-w-2xl ${quotesAnimatingOut ? 'animate-fade-out' : 'animate-fade-in'}`} style={{ animationDelay: quotesAnimatingOut ? '0s' : '0.4s' }}>
-                                    <blockquote className="text-white text-xl md:text-2xl lg:text-3xl leading-relaxed font-crayons">
-                                        "The biggest risk is not taking any risk"
-                                    </blockquote>
-                                </div>
+                            {/* 네 번째 명언 - 우하단 */}
+                            <div className="absolute bottom-[200px] right-[400px] max-w-2xl">
+                                <blockquote className="text-white text-xl md:text-2xl lg:text-3xl leading-relaxed font-crayons">
+                                    {(() => {
+                                        const lines = [
+                                            '"If you can\'t tolerate critics, don\'t',
+                                            'do anything new or interesting."',
+                                        ];
+                                        const full = lines.join('\n');
+                                        const cut = Math.floor(full.length * quotesTyping);
+                                        const visible = full.slice(0, cut).split('\n');
+                                        return (
+                                            <span>
+                                                {visible.map((line, i) => (
+                                                    <span key={i}>
+                                                        {line}
+                                                        {i < visible.length - 1 ? <br /> : null}
+                                                    </span>
+                                                ))}
+                                            </span>
+                                        );
+                                    })()}
+                                </blockquote>
+                            </div>
+                        </div>
 
-                                {/* 네 번째 명언 - 우하단 */}
-                                <div className={`absolute bottom-[200px] right-[400px] max-w-2xl ${quotesAnimatingOut ? 'animate-fade-out' : 'animate-fade-in'}`} style={{ animationDelay: quotesAnimatingOut ? '0s' : '0.6s' }}>
-                                    <blockquote className="text-white text-xl md:text-2xl lg:text-3xl leading-relaxed font-crayons">
-                                        "If you can't tolerate critics, don't<br />
-                                        do anything new or interesting."
-                                    </blockquote>
-                                </div>
-                            </>
-                        )}
+                        {/* Mobile 1열 스택 */}
+                        <div className="md:hidden grid grid-cols-1 gap-6 px-6 py-24">
+                            {[0, 1, 2, 3].map((idx) => (
+                                <blockquote key={idx} className="text-white text-lg leading-relaxed font-crayons">
+                                    {(() => {
+                                        const presets = [
+                                            [
+                                                '"Being the richest man in the cemetery',
+                                                "doesn't matter to me. Going to bed at",
+                                                "night saying we've done something",
+                                                "wonderful... that's what matters to me.",
+                                            ],
+                                            [
+                                                '"I\'d rather be optimistic and wrong',
+                                                'than pessimistic and right."',
+                                            ],
+                                            [
+                                                '"The biggest risk is not taking any risk"',
+                                            ],
+                                            [
+                                                '"If you can\'t tolerate critics, don\'t',
+                                                'do anything new or interesting."',
+                                            ],
+                                        ];
+                                        const lines = presets[idx] as string[];
+                                        const full = lines.join('\n');
+                                        const cut = Math.floor(full.length * quotesTyping);
+                                        const visible = full.slice(0, cut).split('\n');
+                                        return (
+                                            <span>
+                                                {visible.map((line, i) => (
+                                                    <span key={i}>
+                                                        {line}
+                                                        {i < visible.length - 1 ? <br /> : null}
+                                                    </span>
+                                                ))}
+                                            </span>
+                                        );
+                                    })()}
+                                </blockquote>
+                            ))}
+                        </div>
 
                         {/* 사진들 - 명언을 덮도록 등장 */}
                         {showPhotos && (
                             <>
                                 {/* 첫 번째 사진 - 스티브 잡스 */}
-                                <div className={`absolute top-[150px] left-[200px] z-20 ${photosAnimatingOut ? 'animate-fade-out' : 'animate-fade-in'}`}>
+                                <div className={`absolute top-[150px] left-[200px] z-20 ${photosAnimatingOut ? 'animate-fade-out' : ''}`}
+                                     style={{ opacity: photosAnimatingOut ? undefined : photosOpacity }}>
                                     <div className="aspect-video bg-white rounded-lg overflow-hidden shadow-2xl w-96 lg:w-[600px]">
                                         <img
                                             src="/image/apple.png"
@@ -253,7 +385,8 @@ export function HeroSection() {
                                 </div>
 
                                 {/* 두 번째 사진 - 엘론 머스크 */}
-                                <div className={`absolute top-[150px] right-[300px] z-20 ${photosAnimatingOut ? 'animate-fade-out' : 'animate-fade-in'}`}>
+                                <div className={`absolute top-[150px] right-[300px] z-20 ${photosAnimatingOut ? 'animate-fade-out' : ''}`}
+                                     style={{ opacity: photosAnimatingOut ? undefined : photosOpacity }}>
                                     <div className="aspect-video bg-white rounded-lg overflow-hidden shadow-2xl w-96 lg:w-[600px]">
                                         <img
                                             src="/image/tesla.png"
@@ -264,7 +397,8 @@ export function HeroSection() {
                                 </div>
 
                                 {/* 세 번째 사진 - 마크 저커버그 */}
-                                <div className={`absolute bottom-[30px] left-[200px] z-20 ${photosAnimatingOut ? 'animate-fade-out' : 'animate-fade-in'}`}>
+                                <div className={`absolute bottom-[30px] left-[200px] z-20 ${photosAnimatingOut ? 'animate-fade-out' : ''}`}
+                                     style={{ opacity: photosAnimatingOut ? undefined : photosOpacity }}>
                                     <div className="aspect-video bg-white rounded-lg overflow-hidden shadow-2xl w-96 lg:w-[600px]">
                                         <img
                                             src="/image/meta.png"
@@ -275,7 +409,8 @@ export function HeroSection() {
                                 </div>
 
                                 {/* 네 번째 사진 - 제프 베조스 */}
-                                <div className={`absolute bottom-[30px] right-[300px] z-20 ${photosAnimatingOut ? 'animate-fade-out' : 'animate-fade-in'}`}>
+                                <div className={`absolute bottom-[30px] right-[300px] z-20 ${photosAnimatingOut ? 'animate-fade-out' : ''}`}
+                                     style={{ opacity: photosAnimatingOut ? undefined : photosOpacity }}>
                                     <div className="aspect-video bg-white rounded-lg overflow-hidden shadow-2xl w-96 lg:w-[600px]">
                                         <img
                                             src="/image/amazon.png"

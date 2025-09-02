@@ -2,7 +2,6 @@
 
 import { HeroSection } from '@/components/sections/HeroSection';
 import { SubtitleSection } from '@/components/sections/SubtitleSection';
-import { QuotesSection } from '@/components/sections/QuotesSection';
 
 export default function Home() {
   return (
@@ -13,8 +12,7 @@ export default function Home() {
       {/* 2. TWO KOREAN COLLEGE STUDENTS... 부제목 */}
       <SubtitleSection />
 
-      {/* 3. 4개 명언이 있는 노란 배경 */}
-      <QuotesSection />
+      {/* (기존 QuotesSection 제거: 히어로 back1에서 타이핑으로 대체) */}
 
 
 
