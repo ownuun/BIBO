@@ -8,6 +8,8 @@ export function HeroSection() {
     const BACK1_END = 1500; // 타이핑 구간 확장 반영
     const PHOTO_START_PROGRESS = 0.98; // 타이핑 완료 후 충분한 간격 확보
     const PHOTO_FADE_END_Y = 4800; // 사진 페이드인 완료 Y (더 느리게: 더 긴 거리)
+    // back3 추가 스크롤을 위한 꼬리 공간(px)
+    const BACK3_SCROLL_TAIL_PX = 2200; // 텍스트 이동+프로필 등장에 충분한 여유
 
     const [isScrolled, setIsScrolled] = useState(false);
     const [showContent, setShowContent] = useState(false);
@@ -16,7 +18,6 @@ export function HeroSection() {
     const [showPhotos, setShowPhotos] = useState(false);
     const [photosAnimatingOut, setPhotosAnimatingOut] = useState(false);
     const [quotesAnimatingOut, setQuotesAnimatingOut] = useState(false);
-    const [photosShowTime, setPhotosShowTime] = useState<number | null>(null);
     const [quotesHidden, setQuotesHidden] = useState(false);
     const [backgroundOnlyTime, setBackgroundOnlyTime] = useState<number | null>(null);
     const [showBack3, setShowBack3] = useState(false);
@@ -24,13 +25,45 @@ export function HeroSection() {
     const [back1OnlyTime, setBack1OnlyTime] = useState<number | null>(null);
     const [back3AnimatingOut, setBack3AnimatingOut] = useState(false);
     const [showFinalText, setShowFinalText] = useState(false);
-    // Scroll-proportional fade and typing for quotes
+    // back3 추가 페이즈: 텍스트 이동 및 프로필 등장
+    const [back3EnterY, setBack3EnterY] = useState<number | null>(null);
+    const [finalMoveProgress, setFinalMoveProgress] = useState(0); // 0~1, 텍스트 상단 이동
+    const [profilesProgress, setProfilesProgress] = useState(0);    // 0~1, 프로필 슬라이드업
+    const [showProfiles, setShowProfiles] = useState(false);
+    const [condenseProgress, setCondenseProgress] = useState(0);    // 0~1, 2줄 → 1줄 축소/응축 진행도
+    // Scroll-proportional fade for quotes
     const [quotesFade, setQuotesFade] = useState(0);
-    const [quotesTyping, setQuotesTyping] = useState(0);
     // Scroll-proportional opacity for photos
     const [photosOpacity, setPhotosOpacity] = useState(0);
-    const photosFadeOutTimerRef = useRef<number | null>(null);
-    const back3CheckTimerRef = useRef<number | null>(null);
+    // 명언 타이핑 애니메이션 상태
+    const [quote1Text, setQuote1Text] = useState('');
+    const [quote2Text, setQuote2Text] = useState('');
+    const [quote3Text, setQuote3Text] = useState('');
+    const [quote4Text, setQuote4Text] = useState('');
+    const back3SentinelRef = useRef<HTMLDivElement | null>(null);
+
+    // 명언 원본 텍스트
+    const quotes = [
+        '"Being the richest man in the cemetery\ndoesn\'t matter to me. Going to bed at\nnight saying we\'ve done something\nwonderful... that\'s what matters to me."',
+        '"I\'d rather be optimistic and wrong\nthan pessimistic and right."',
+        '"The biggest risk is not taking any risk"',
+        '"If you can\'t tolerate critics, don\'t\ndo anything new or interesting."'
+    ];
+
+    // 타이핑 애니메이션 함수
+    const typeText = (text: string, setter: (text: string) => void, delay: number = 0) => {
+        setTimeout(() => {
+            let currentIndex = 0;
+            const interval = setInterval(() => {
+                if (currentIndex <= text.length) {
+                    setter(text.slice(0, currentIndex));
+                    currentIndex++;
+                } else {
+                    clearInterval(interval);
+                }
+            }, 50); // 50ms마다 한 글자씩
+        }, delay);
+    };
 
     useEffect(() => {
         const handleScroll = () => {
@@ -43,16 +76,14 @@ export function HeroSection() {
             // 스크롤 상태에 따라 콘텐츠 표시/숨김
             setShowContent(scrolled);
 
-            // back1 진행도 및 명언 컨테이너 페이드/타이핑 진행도 계산
+            // back1 진행도 및 명언 컨테이너 페이드 진행도 계산
             const sectionStart = BACK1_START; // back1 시작 기준
             const sectionEnd = BACK1_END;  // back1 종료 기준(확대)
             const span = sectionEnd - sectionStart;
             const raw = (scrollY - sectionStart) / span;
             const p = Math.max(0, Math.min(1, raw)); // 0~1 정규화
             const fade = Math.max(0, Math.min(1, (p - 0.05) / 0.10)); // 0.05~0.15 → 0~1
-            const typing = Math.max(0, Math.min(1, (p - 0.05) / 0.90)); // 0.05~0.95 → 0~1
             setQuotesFade(fade);
-            setQuotesTyping(typing);
 
             // 사진 스크롤-비례 페이드인(그 자리에서 선명해짐)
             // 끝 지점이 너무 멀어 도달 불가해지는 문제를 방지하기 위해 현재 페이지의 최대 스크롤 한계 내로 클램핑
@@ -76,13 +107,12 @@ export function HeroSection() {
                 setShowQuotes(scrollY > 500);
             }
 
-            // 명언 타이핑 완료 + 진행도 임계 이상일 때 사진 1회 등장(섹션 내 고정)
+            // 명언 섹션 표시 후 일정 시간 지나면 사진 등장
             if (showQuotes && !photosHidden && !showPhotos) {
-                const canShowPhotos = typing >= 1 && p >= PHOTO_START_PROGRESS;
+                const canShowPhotos = p >= PHOTO_START_PROGRESS;
                 if (canShowPhotos) {
                     setPhotosAnimatingOut(false);
                     setShowPhotos(true);
-                    setPhotosShowTime(Date.now()); // 사진이 나타난 시간 기록
                 }
             }
 
@@ -101,6 +131,34 @@ export function HeroSection() {
                 }, 1000); // 애니메이션 지속시간과 일치
             }
 
+            // back3 진입 이후 추가 스크롤에 따른 파이널 텍스트 이동 및 프로필 등장 진행도 계산
+            if (showBack3 && back3EnterY !== null) {
+                const moveStart = back3EnterY + 150;   // 진입 후 150px부터 이동 시작
+                const moveEnd = moveStart + 800;       // 800px 구간 동안 상단으로 이동
+                const rawMove = (scrollY - moveStart) / (moveEnd - moveStart);
+                const moveP = Math.max(0, Math.min(1, rawMove));
+                setFinalMoveProgress(moveP);
+
+                // 2줄 → 1줄 응축 구간
+                const condenseStart = moveStart + 100; // 이동 초반부에 함께 축소 시작
+                const condenseEnd = condenseStart + 600;
+                const rawCondense = (scrollY - condenseStart) / (condenseEnd - condenseStart);
+                const condenseP = Math.max(0, Math.min(1, rawCondense));
+                setCondenseProgress(condenseP);
+
+                const profilesStart = moveEnd + 120;   // 텍스트 이동 완료 후 약간의 간격
+                const profilesEnd = profilesStart + 700; // 700px 동안 프로필 슬라이드업
+                const rawProfiles = (scrollY - profilesStart) / (profilesEnd - profilesStart);
+                const profP = Math.max(0, Math.min(1, rawProfiles));
+                setProfilesProgress(profP);
+                if (profP > 0 && !showProfiles) setShowProfiles(true);
+                if (profP === 0 && scrollY < profilesStart - 10 && showProfiles) setShowProfiles(false);
+            } else {
+                setFinalMoveProgress(0);
+                setProfilesProgress(0);
+                setCondenseProgress(0);
+                if (showProfiles) setShowProfiles(false);
+            }
             // back1 배경에서 위로 스크롤할 때 사진 복원 (명언은 항상 유지)
             if (/* quotesHidden && */ photosHidden && scrollY <= BACK1_END && backgroundOnlyTime) {
                 const backgroundTimeElapsed = Date.now() - backgroundOnlyTime;
@@ -117,72 +175,58 @@ export function HeroSection() {
 
         window.addEventListener('scroll', handleScroll);
         return () => window.removeEventListener('scroll', handleScroll);
-    }, [typingComplete, showQuotes, showPhotos, photosAnimatingOut, quotesAnimatingOut, photosShowTime, quotesHidden, backgroundOnlyTime, showBack3, photosHidden, back1OnlyTime, back3AnimatingOut, showFinalText]);
+    }, [typingComplete, showQuotes, showPhotos, photosAnimatingOut, quotesAnimatingOut, quotesHidden, backgroundOnlyTime, showBack3, photosHidden, back1OnlyTime, back3AnimatingOut, showFinalText]);
 
-    // 사진 페이드아웃을 스크롤 이벤트와 무관하게 보장 (opacity=1 이후 3초 체류)
+    // IntersectionObserver로 back3 전환을 순수 스크롤로 보장
     useEffect(() => {
-        if (showPhotos && photosShowTime && photosOpacity >= 1 && !photosAnimatingOut && !quotesAnimatingOut && !photosHidden) {
-            if (!photosFadeOutTimerRef.current) {
-                photosFadeOutTimerRef.current = window.setTimeout(() => {
-                    setPhotosAnimatingOut(true);
-                    setTimeout(() => {
-                        setShowPhotos(false);
-                        setPhotosAnimatingOut(false);
-                        setPhotosShowTime(null);
-                        setPhotosHidden(true);
-                        setBackgroundOnlyTime(Date.now());
-                        setBack1OnlyTime(Date.now());
-                    }, 800);
-                    photosFadeOutTimerRef.current = null;
-                }, 3000);
-            }
-        } else {
-            if (photosFadeOutTimerRef.current) {
-                clearTimeout(photosFadeOutTimerRef.current);
-                photosFadeOutTimerRef.current = null;
-            }
-        }
-        return () => {
-            if (photosFadeOutTimerRef.current) {
-                clearTimeout(photosFadeOutTimerRef.current);
-                photosFadeOutTimerRef.current = null;
-            }
-        };
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [showPhotos, photosShowTime, photosOpacity, photosAnimatingOut, quotesAnimatingOut, photosHidden]);
-
-    // back3 전환 보장: back1OnlyTime 이후 1초 경과 시, 하단 근접 또는 충분히 내려왔으면 전환
-    useEffect(() => {
-        if (!showBack3 && back1OnlyTime) {
-            const check = () => {
-                const elapsed = Date.now() - back1OnlyTime;
-                const maxScrollableY = Math.max(0, (document.documentElement.scrollHeight || document.body.scrollHeight) - window.innerHeight);
-                const nearBottom = maxScrollableY - window.scrollY < 10; // 하단 근접
-                if (elapsed >= 1000 && (nearBottom || window.scrollY > BACK1_END + 50)) {
-                    setShowBack3(true);
-                    setTimeout(() => setShowFinalText(true), 1200);
-                    return true;
-                }
-                return false;
-            };
-            if (!check()) {
-                const id = window.setInterval(() => {
-                    if (check()) {
-                        if (back3CheckTimerRef.current) clearInterval(back3CheckTimerRef.current);
+        const target = back3SentinelRef.current;
+        if (!target) return;
+        const observer = new IntersectionObserver(
+            (entries) => {
+                entries.forEach((entry) => {
+                    if (entry.isIntersecting) {
+                        // back3 진입: 사진은 페이드아웃, back3 표시
+                        if (showPhotos && !photosAnimatingOut) {
+                            setPhotosAnimatingOut(true);
+                            setTimeout(() => {
+                                setShowPhotos(false);
+                                setPhotosAnimatingOut(false);
+                                setPhotosHidden(true);
+                                setBackgroundOnlyTime(Date.now());
+                                setBack1OnlyTime(Date.now());
+                            }, 800);
+                        }
+                        if (!showBack3) {
+                            setShowBack3(true);
+                            // back3 진입 시점 기록
+                            setBack3EnterY(window.scrollY);
+                            setTimeout(() => setShowFinalText(true), 1200);
+                        }
                     }
-                }, 100);
-                back3CheckTimerRef.current = id as unknown as number;
-                return () => clearInterval(id);
-            }
+                });
+            },
+            { root: null, threshold: 0, rootMargin: '0px 0px -20% 0px' }
+        );
+        observer.observe(target);
+        return () => observer.disconnect();
+    }, [showPhotos, photosAnimatingOut, showBack3]);
+
+    // 명언 섹션 표시 시 타이핑 애니메이션 시작
+    useEffect(() => {
+        if (showQuotes) {
+            // 기존 텍스트 초기화
+            setQuote1Text('');
+            setQuote2Text('');
+            setQuote3Text('');
+            setQuote4Text('');
+            
+            // 순차적으로 타이핑 시작
+            typeText(quotes[0], setQuote1Text, 200);    // 0.2초 후
+            typeText(quotes[1], setQuote2Text, 600);    // 0.6초 후
+            typeText(quotes[2], setQuote3Text, 1000);   // 1초 후
+            typeText(quotes[3], setQuote4Text, 1400);   // 1.4초 후
         }
-        return () => {
-            if (back3CheckTimerRef.current) {
-                clearInterval(back3CheckTimerRef.current);
-                back3CheckTimerRef.current = null;
-            }
-        };
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [back1OnlyTime, showBack3]);
+    }, [showQuotes]);
 
 
 
@@ -266,144 +310,47 @@ export function HeroSection() {
                         <div className="hidden md:block">
                             {/* 첫 번째 명언 - 좌상단 */}
                             <div className="absolute top-56 left-[240px] max-w-2xl">
-                                <blockquote className="text-white text-xl md:text-2xl lg:text-3xl leading-relaxed font-crayons">
-                                    {(() => {
-                                        const lines = [
-                                            '"Being the richest man in the cemetery',
-                                            "doesn't matter to me. Going to bed at",
-                                            "night saying we've done something",
-                                            "wonderful... that's what matters to me.",
-                                        ];
-                                        const full = lines.join('\n');
-                                        const cut = Math.floor(full.length * quotesTyping);
-                                        const visible = full.slice(0, cut).split('\n');
-                                        return (
-                                            <span>
-                                                {visible.map((line, i) => (
-                                                    <span key={i}>
-                                                        {line}
-                                                        {i < visible.length - 1 ? <br /> : null}
-                                                    </span>
-                                                ))}
-                                            </span>
-                                        );
-                                    })()}
+                                <blockquote className="text-white text-xl md:text-2xl lg:text-3xl leading-relaxed font-crayons whitespace-pre-line">
+                                    {quote1Text}
                                 </blockquote>
                             </div>
 
                             {/* 두 번째 명언 - 우상단 */}
                             <div className="absolute top-[260px] right-[400px] max-w-2xl">
-                                <blockquote className="text-white text-xl md:text-2xl lg:text-3xl leading-relaxed font-crayons">
-                                    {(() => {
-                                        const lines = [
-                                            '"I\'d rather be optimistic and wrong',
-                                            'than pessimistic and right."',
-                                        ];
-                                        const full = lines.join('\n');
-                                        const cut = Math.floor(full.length * quotesTyping);
-                                        const visible = full.slice(0, cut).split('\n');
-                                        return (
-                                            <span>
-                                                {visible.map((line, i) => (
-                                                    <span key={i}>
-                                                        {line}
-                                                        {i < visible.length - 1 ? <br /> : null}
-                                                    </span>
-                                                ))}
-                                            </span>
-                                        );
-                                    })()}
+                                <blockquote className="text-white text-xl md:text-2xl lg:text-3xl leading-relaxed font-crayons whitespace-pre-line">
+                                    {quote2Text}
                                 </blockquote>
                             </div>
 
                             {/* 세 번째 명언 - 좌하단 */}
                             <div className="absolute bottom-[200px] left-[240px] max-w-2xl">
-                                <blockquote className="text-white text-xl md:text-2xl lg:text-3xl leading-relaxed font-crayons">
-                                    {(() => {
-                                        const lines = [
-                                            '"The biggest risk is not taking any risk"',
-                                        ];
-                                        const full = lines.join('\n');
-                                        const cut = Math.floor(full.length * quotesTyping);
-                                        const visible = full.slice(0, cut).split('\n');
-                                        return (
-                                            <span>
-                                                {visible.map((line, i) => (
-                                                    <span key={i}>{line}</span>
-                                                ))}
-                                            </span>
-                                        );
-                                    })()}
+                                <blockquote className="text-white text-xl md:text-2xl lg:text-3xl leading-relaxed font-crayons whitespace-pre-line">
+                                    {quote3Text}
                                 </blockquote>
                             </div>
 
                             {/* 네 번째 명언 - 우하단 */}
                             <div className="absolute bottom-[200px] right-[400px] max-w-2xl">
-                                <blockquote className="text-white text-xl md:text-2xl lg:text-3xl leading-relaxed font-crayons">
-                                    {(() => {
-                                        const lines = [
-                                            '"If you can\'t tolerate critics, don\'t',
-                                            'do anything new or interesting."',
-                                        ];
-                                        const full = lines.join('\n');
-                                        const cut = Math.floor(full.length * quotesTyping);
-                                        const visible = full.slice(0, cut).split('\n');
-                                        return (
-                                            <span>
-                                                {visible.map((line, i) => (
-                                                    <span key={i}>
-                                                        {line}
-                                                        {i < visible.length - 1 ? <br /> : null}
-                                                    </span>
-                                                ))}
-                                            </span>
-                                        );
-                                    })()}
+                                <blockquote className="text-white text-xl md:text-2xl lg:text-3xl leading-relaxed font-crayons whitespace-pre-line">
+                                    {quote4Text}
                                 </blockquote>
                             </div>
                         </div>
 
                         {/* Mobile 1열 스택 */}
                         <div className="md:hidden grid grid-cols-1 gap-6 px-6 py-24">
-                            {[0, 1, 2, 3].map((idx) => (
-                                <blockquote key={idx} className="text-white text-lg leading-relaxed font-crayons">
-                                    {(() => {
-                                        const presets = [
-                                            [
-                                                '"Being the richest man in the cemetery',
-                                                "doesn't matter to me. Going to bed at",
-                                                "night saying we've done something",
-                                                "wonderful... that's what matters to me.",
-                                            ],
-                                            [
-                                                '"I\'d rather be optimistic and wrong',
-                                                'than pessimistic and right."',
-                                            ],
-                                            [
-                                                '"The biggest risk is not taking any risk"',
-                                            ],
-                                            [
-                                                '"If you can\'t tolerate critics, don\'t',
-                                                'do anything new or interesting."',
-                                            ],
-                                        ];
-                                        const lines = presets[idx] as string[];
-                                        const full = lines.join('\n');
-                                        const cut = Math.floor(full.length * quotesTyping);
-                                        const visible = full.slice(0, cut).split('\n');
-                                        return (
-                                            <span>
-                                                {visible.map((line, i) => (
-                                                    <span key={i}>
-                                                        {line}
-                                                        {i < visible.length - 1 ? <br /> : null}
-                                                    </span>
-                                                ))}
-                                            </span>
-                                        );
-                                    })()}
-                                </blockquote>
-                            ))}
+                            <blockquote className="text-white text-lg leading-relaxed font-crayons whitespace-pre-line">
+                                {quote1Text}
+                            </blockquote>
+                            <blockquote className="text-white text-lg leading-relaxed font-crayons whitespace-pre-line">
+                                {quote2Text}
+                            </blockquote>
+                            <blockquote className="text-white text-lg leading-relaxed font-crayons whitespace-pre-line">
+                                {quote3Text}
+                            </blockquote>
+                            <blockquote className="text-white text-lg leading-relaxed font-crayons whitespace-pre-line">
+                                {quote4Text}
+                            </blockquote>
                         </div>
 
                         {/* 사진들 - 명언을 덮도록 등장 */}
@@ -480,26 +427,105 @@ export function HeroSection() {
                     {/* 어두운 오버레이 */}
                     <div className="absolute inset-0 bg-black bg-opacity-40"></div>
 
-                    {/* 중앙 텍스트 */}
+                    {/* 중앙 텍스트: 드롭-바운스 애니메이션 */}
                     {showFinalText && (
-                        <div className="relative z-10 text-center">
-                            <div className="typing-animation-final">
-                                <h1 className="text-white font-colored-crayons text-4xl md:text-6xl lg:text-7xl leading-tight">
-                                    TESLA, META, GOOGLE, NVIDIA
-                                    <br />
-                                    <span className="bg-gradient-to-r from-red-500 via-green-500 via-blue-500 to-purple-500 bg-clip-text text-transparent text-5xl md:text-7xl lg:text-9xl">
-                                        BIBO
-                                    </span>{' '}
-                                    <span className="text-5xl md:text-7xl lg:text-9xl">LET'S GO</span>{' '}
-                                    <span className="inline-block text-6xl md:text-8xl lg:text-9xl">🚀</span>
-                                </h1>
-                            </div>
+                        <div className="relative z-10 w-full h-full">
+                            {/* 텍스트 래퍼: 중앙에서 시작하여 스크롤에 따라 상단으로 이동 */}
+                            {(() => {
+                                const maxLiftVh = 32; // 상단으로 올릴 정도 (vh)
+                                const translateY = -(finalMoveProgress * maxLiftVh);
+                                const minScale = 0.58;
+                                const scale = 1 - (1 - minScale) * condenseProgress; // 1 → 0.58
+                                const letter = `${Math.max(0, 0.02 - 0.02 * condenseProgress)}em`; // 자간 살짝 축소
+                                const lineH = 1.1 - 0.2 * condenseProgress; // 줄간격 낮춤
+                                const transform = `translateY(${translateY}vh) scale(${scale})`;
+                                return (
+                                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                                        <div className="text-center pointer-events-none" style={{ transform, transition: 'transform 40ms linear', willChange: 'transform' }}>
+                                            <div className={`final-drop-container ${showFinalText ? 'is-visible' : ''}`}>
+                                                <h1 className={`final-text ${condenseProgress > 0.7 ? 'is-condensed' : ''} text-white font-colored-crayons text-4xl md:text-6xl lg:text-7xl leading-tight`}
+                                                    style={{ letterSpacing: letter as any, lineHeight: lineH, ['--condense' as any]: condenseProgress }}
+                                                >
+                                                    <span className="drop-item item-1 seg seg-base">TESLA, META, GOOGLE, NVIDIA</span>
+                                                    <span className={`line-breaker`} aria-hidden="true"></span>
+                                                    <span className="drop-item item-2 seg seg-big">
+                                                        <span className="seg-big-inner bg-gradient-to-r from-red-500 via-green-500 via-blue-500 to-purple-500 bg-clip-text text-transparent text-5xl md:text-7xl lg:text-9xl">
+                                                            BIBO
+                                                        </span>
+                                                    </span>{' '}
+                                                    <span className="drop-item item-3 seg seg-big">
+                                                        <span className="seg-big-inner text-5xl md:text-7xl lg:text-9xl">LET'S GO</span>
+                                                    </span>{' '}
+                                                    <span className="drop-item item-4 seg seg-emoji">
+                                                        <span className="seg-emoji-inner inline-block text-6xl md:text-8xl lg:text-9xl">🚀</span>
+                                                    </span>
+                                                </h1>
+                                            </div>
+                                        </div>
+                                    </div>
+                                );
+                            })()}
+
+                            {/* 프로필 섹션: 아래에서 위로 슬라이드업 */}
+                            {showProfiles && (
+                                <div className="absolute inset-0 flex items-end justify-center pb-[12vh]">
+                                    {(() => {
+                                        const startOffsetVh = 18; // 아래에서 시작하는 오프셋
+                                        const ty = (1 - profilesProgress) * startOffsetVh;
+                                        const opacity = Math.min(1, Math.max(0, profilesProgress));
+                                        return (
+                                            <div className="w-full max-w-6xl px-6" style={{ transform: `translateY(${ty}vh)`, opacity, transition: 'transform 40ms linear, opacity 120ms linear', willChange: 'transform, opacity' }}>
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                                    {/* 좌측 카드 */}
+                                                    <div className="bg-black/40 backdrop-blur-sm rounded-xl p-6 border border-white/10">
+                                                        <div className="flex items-start gap-4">
+                                                            <div className="w-32 h-32 bg-white/80 text-black flex items-center justify-center rounded-md font-semibold">사진</div>
+                                                            <div className="flex-1">
+                                                                <h3 className="text-white text-2xl font-semibold mb-2">전도현</h3>
+                                                                <ul className="text-white/90 space-y-1">
+                                                                    <li>나이: 24</li>
+                                                                    <li>학력: B.S. CS (재학)</li>
+                                                                    <li>경력: 스타트업 인턴, 해커톤 3회</li>
+                                                                    <li>자기소개: 제품 집착, 프론트엔드/애니메이션 러버</li>
+                                                                    <li className="text-blue-300">링크드인 주소</li>
+                                                                </ul>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    {/* 우측 카드 */}
+                                                    <div className="bg-black/40 backdrop-blur-sm rounded-xl p-6 border border-white/10">
+                                                        <div className="flex items-start gap-4">
+                                                            <div className="w-32 h-32 bg-white/80 text-black flex items-center justify-center rounded-md font-semibold">사진</div>
+                                                            <div className="flex-1">
+                                                                <h3 className="text-white text-2xl font-semibold mb-2">서원준</h3>
+                                                                <ul className="text-white/90 space-y-1">
+                                                                    <li>나이: 24</li>
+                                                                    <li>학력: B.S. CS (재학)</li>
+                                                                    <li>경력: 오픈소스 기여, 사이드 프로젝트</li>
+                                                                    <li>자기소개: 백엔드/인프라 좋아하는 빌더</li>
+                                                                    <li className="text-blue-300">링크드인 주소</li>
+                                                                </ul>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        );
+                                    })()}
+                                </div>
+                            )}
                         </div>
                     )}
                 </section>
 
-                {/* 스크롤 공간 확보를 위한 더미 div (확대) */}
-                <div className="h-[600vh]"></div>
+                {/* 스크롤 공간 확보 + back3 센티넬 배치 */}
+                <div className="relative h-[600vh]">
+                    {/* back3 시작 센티넬: 하단에서 20vh 지점 */}
+                    <div ref={back3SentinelRef} className="absolute bottom-[20vh] left-0 w-px h-px"></div>
+                </div>
+                {/* back3 진입 이후 추가 스크롤 꼬리 공간 */}
+                <div style={{ height: `${BACK3_SCROLL_TAIL_PX}px` }} />
             </div>
         </>
     );

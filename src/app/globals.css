@@ -263,8 +263,17 @@
     overflow: hidden;
     white-space: nowrap;
     width: 0;
-    animation: typing 1.3s steps(250, end) 0.5s forwards;
+    animation: typing 2.5s steps(150, end) 0.5s forwards;
     max-width: none;
+  }
+
+  /* 명언용 타이핑 애니메이션 (여러 줄 지원) */
+  .typing-animation-quotes {
+    overflow: hidden;
+    width: 0;
+    animation: typing-quotes 3s steps(100, end) forwards;
+    max-width: none;
+    white-space: pre-line;
   }
 
   .typing-animation.show {
@@ -301,6 +310,118 @@
 
     to {
       width: 100%;
+    }
+  }
+
+  @keyframes typing-quotes {
+    from {
+      width: 0;
+    }
+
+    to {
+      width: 100%;
+    }
+  }
+
+  /* 파이널 드롭-바운스 애니메이션 */
+  .final-drop-container {
+    display: inline-block;
+  }
+
+  .final-drop-container .drop-item {
+    display: inline-block;
+    transform: translateY(-120vh) scaleX(1) scaleY(1);
+    opacity: 0;
+    will-change: transform, opacity;
+  }
+
+  .final-drop-container.is-visible .drop-item {
+    animation: drop-bounce 1.2s ease-out forwards;
+  }
+
+  /* 스태거 딜레이 */
+  .final-drop-container.is-visible .item-1 { animation-delay: 0ms; }
+  .final-drop-container.is-visible .item-2 { animation-delay: 120ms; }
+  .final-drop-container.is-visible .item-3 { animation-delay: 220ms; }
+  .final-drop-container.is-visible .item-4 { animation-delay: 300ms; }
+
+  @keyframes drop-bounce {
+    0% {
+      transform: translateY(-120vh) scaleX(1) scaleY(1);
+      opacity: 0;
+    }
+    60% {
+      transform: translateY(0) scaleX(1.05) scaleY(0.9); /* 충돌 스쿼시 */
+      opacity: 1;
+    }
+    72% {
+      transform: translateY(-32px) scaleX(0.98) scaleY(1.02); /* 첫 반동 */
+    }
+    84% {
+      transform: translateY(0) scaleX(1.02) scaleY(0.99);
+    }
+    92% {
+      transform: translateY(-12px) scaleX(0.995) scaleY(1.01); /* 두 번째 반동 */
+    }
+    100% {
+      transform: translateY(0) scaleX(1) scaleY(1);
+      opacity: 1;
+    }
+  }
+
+  /* 모션 감소 접근성 */
+  @media (prefers-reduced-motion: reduce) {
+    .final-drop-container .drop-item {
+      transform: none !important;
+      opacity: 1 !important;
+      animation: none !important;
+    }
+  }
+
+  /* 파이널 텍스트: 2줄 → 1줄 응축 전환 유틸 */
+  .final-text {
+    will-change: transform, letter-spacing, line-height;
+    /* condense 진행도(0~1) 및 보정 타깃 비율 */
+    --condense: 0;
+    --bigTarget: 0.70;   /* 큰 세그먼트를 최종 70%로 보정해 베이스와 유사 크기 */
+    --emojiTarget: 0.78; /* 이모지 과도 확대 보정 */
+  }
+  .final-text .line-breaker {
+    display: block; /* 줄바꿈 역할 */
+    height: 0;
+    line-height: 0;
+  }
+  .final-text .seg {
+    display: inline-block;
+    vertical-align: baseline;
+    transform-origin: left bottom;
+  }
+  /* 큰 세그먼트와 이모지의 상대 크기를 condense에 따라 점진적으로 맞춘다 */
+  .final-text .seg-big {
+    transform: scale(calc(1 - (1 - var(--bigTarget)) * var(--condense)));
+  }
+  .final-text .seg-emoji {
+    transform: scale(calc(1 - (1 - var(--emojiTarget)) * var(--condense)));
+  }
+  .final-text.is-condensed {
+    white-space: nowrap;
+  }
+  .final-text.is-condensed .line-breaker {
+    display: inline; /* 줄바꿈 제거 */
+  }
+  /* 응축 완료 시 최종적으로 글자 크기를 맞춘다(점프 최소화) */
+  .final-text.is-condensed .seg-big,
+  .final-text.is-condensed .seg-emoji {
+    transform: none;
+  }
+  .final-text.is-condensed .seg-big-inner,
+  .final-text.is-condensed .seg-emoji-inner {
+    font-size: 1em !important;
+    line-height: inherit;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .final-text {
+      transition: none !important;
     }
   }
 
