@@ -173,6 +173,54 @@
     animation: fade-in 1s ease-out;
   }
 
+  @keyframes fade-out {
+    from {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    to {
+      opacity: 0;
+      transform: translateY(-30px);
+    }
+  }
+
+  .animate-fade-out {
+    animation: fade-out 0.8s ease-in forwards;
+  }
+
+  @keyframes slide-up-fade-in {
+    from {
+      opacity: 0;
+      transform: translateY(100vh);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .animate-slide-up-fade-in {
+    animation: slide-up-fade-in 1.2s ease-out forwards;
+  }
+
+  @keyframes slide-down-fade-out {
+    from {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    to {
+      opacity: 0;
+      transform: translateY(100vh);
+    }
+  }
+
+  .animate-slide-down-fade-out {
+    animation: slide-down-fade-out 1s ease-in forwards;
+  }
+
   .animate-slide-in-from-top {
     animation: slide-in-from-top 0.8s ease-out;
   }
@@ -225,6 +273,25 @@
 
   .typing-animation.hide {
     animation: typing-reverse 0.5s steps(80, end) forwards;
+  }
+
+  /* 파이널 텍스트 타이핑 애니메이션 */
+  .typing-animation-final {
+    overflow: hidden;
+    white-space: nowrap;
+    width: 0;
+    animation: typing-final 3s steps(50, end) 0.5s forwards;
+    max-width: none;
+  }
+
+  @keyframes typing-final {
+    from {
+      width: 0;
+    }
+
+    to {
+      width: 100%;
+    }
   }
 
   @keyframes typing {
