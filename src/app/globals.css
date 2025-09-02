@@ -1,0 +1,199 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* BIBO 커스텀 폰트 */
+@font-face {
+  font-family: 'CF Crayons';
+  src: url('/fonts/CFCrayons-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@layer base {
+  :root {
+    /* BIBO 디자인 시스템 - 피그마 기반 라이트 테마 */
+    /* Primary Colors (BIBO 로고 빨간색) */
+    --primary-100: 0 100% 95%;
+    --primary-500: 0 100% 50%;
+    --primary-900: 0 100% 40%;
+    --primary: 0 100% 50%;
+    --primary-foreground: 0 0% 100%;
+
+    /* Secondary Colors (BIBO 배경 노란색) */
+    --secondary-100: 51 100% 95%;
+    --secondary-500: 51 100% 50%;
+    --secondary-900: 51 100% 45%;
+    --secondary: 51 100% 50%;
+    --secondary-foreground: 0 0% 0%;
+
+    /* Accent Colors (BIBO 로고 색상) */
+    --accent: 0 100% 50%;
+    --accent-hover: 0 100% 45%;
+    --accent-focus: 0 100% 40%;
+    --accent-foreground: 0 0% 100%;
+
+    /* Grayscale (노란색 배경과 조화) */
+    --grayscale-50: 51 100% 98%;
+    --grayscale-200: 51 30% 90%;
+    --grayscale-400: 51 20% 65%;
+    --grayscale-600: 51 25% 35%;
+    --grayscale-900: 51 30% 15%;
+
+    /* Legacy shadcn/ui colors (호환성 유지) */
+    --background: 0 0% 100%;
+    --foreground: 0 0% 3.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 3.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 3.9%;
+    --muted: 0 0% 96.1%;
+    --muted-foreground: 0 0% 45.1%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 0 0% 89.8%;
+    --input: 0 0% 89.8%;
+    --ring: 0 0% 3.9%;
+    --radius: 0.5rem;
+    --chart-1: 12 76% 61%;
+    --chart-2: 173 58% 39%;
+    --chart-3: 197 37% 24%;
+    --chart-4: 43 74% 66%;
+    --chart-5: 27 87% 67%;
+  }
+
+  .dark {
+    /* BIBO 디자인 시스템 - 다크 테마 */
+    /* Primary Colors (다크에서도 BIBO 빨간색 유지) */
+    --primary-100: 0 100% 20%;
+    --primary-500: 0 100% 60%;
+    --primary-900: 0 100% 80%;
+    --primary: 0 100% 60%;
+    --primary-foreground: 0 0% 100%;
+
+    /* Secondary Colors (다크에서 노란색 조정) */
+    --secondary-100: 51 100% 20%;
+    --secondary-500: 51 100% 60%;
+    --secondary-900: 51 100% 80%;
+    --secondary: 51 100% 60%;
+    --secondary-foreground: 0 0% 0%;
+
+    /* Accent Colors */
+    --accent: 0 100% 60%;
+    --accent-hover: 0 100% 70%;
+    --accent-focus: 0 100% 80%;
+    --accent-foreground: 0 0% 100%;
+
+    /* Grayscale (다크 테마용) */
+    --grayscale-50: 0 0% 5%;
+    --grayscale-200: 0 0% 15%;
+    --grayscale-400: 0 0% 35%;
+    --grayscale-600: 0 0% 65%;
+    --grayscale-900: 0 0% 95%;
+
+    /* Legacy shadcn/ui colors (다크 테마) */
+    --background: 0 0% 3.9%;
+    --foreground: 0 0% 98%;
+    --card: 0 0% 3.9%;
+    --card-foreground: 0 0% 98%;
+    --popover: 0 0% 3.9%;
+    --popover-foreground: 0 0% 98%;
+    --muted: 0 0% 14.9%;
+    --muted-foreground: 0 0% 63.9%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 0 0% 14.9%;
+    --input: 0 0% 14.9%;
+    --ring: 0 0% 83.1%;
+    --chart-1: 220 70% 50%;
+    --chart-2: 160 60% 45%;
+    --chart-3: 30 80% 55%;
+    --chart-4: 280 65% 60%;
+    --chart-5: 340 75% 55%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+@layer utilities {
+
+  /* BIBO 랜딩 페이지 애니메이션 */
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+      transform: translateY(30px);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes slide-in-from-top {
+    from {
+      opacity: 0;
+      transform: translateY(-100px);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes typewriter {
+    from {
+      width: 0;
+    }
+
+    to {
+      width: 100%;
+    }
+  }
+
+  .animate-fade-in {
+    animation: fade-in 1s ease-out;
+  }
+
+  .animate-slide-in-from-top {
+    animation: slide-in-from-top 0.8s ease-out;
+  }
+
+  .animate-typewriter {
+    animation: typewriter 2s steps(40, end);
+  }
+
+  /* 접근성: 스크린 리더 전용 텍스트 */
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  .focus\:not-sr-only:focus {
+    position: static;
+    width: auto;
+    height: auto;
+    padding: 0;
+    margin: 0;
+    overflow: visible;
+    clip: auto;
+    white-space: normal;
+  }
+}
