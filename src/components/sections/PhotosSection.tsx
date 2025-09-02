@@ -25,14 +25,7 @@ export function PhotosSection() {
             {/* 어두운 오버레이 */}
             <div className="absolute inset-0 bg-black bg-opacity-60" />
 
-            {/* 좌측 상단 BIBO 로고 (작게) */}
-            <div className="absolute top-8 left-8 z-10">
-                <img
-                    src="/image/logo.png"
-                    alt="BIBO Logo"
-                    className="w-16 h-16 object-contain"
-                />
-            </div>
+
 
             {/* 우측 상단 부제목 */}
             <div className="absolute top-8 right-8 z-10 text-right">

@@ -173,6 +173,35 @@
     animation: typewriter 2s steps(40, end);
   }
 
+  /* BIBO 로고 애니메이션 최적화 */
+  .logo-transition {
+    transition: all 1500ms cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    will-change: transform, width, height;
+  }
+
+  /* 매우 부드러운 로고 이동 애니메이션 */
+  .logo-smooth-move {
+    transition: all 4000ms cubic-bezier(0.23, 1, 0.32, 1);
+    will-change: transform, width, height;
+  }
+
+  /* 로고가 항상 보이도록 하는 스타일 */
+  .logo-always-visible {
+    position: fixed !important;
+    z-index: 9999 !important;
+  }
+
+  /* 매우 부드러운 로고 이동을 위한 커스텀 애니메이션 */
+  .logo-move-smooth {
+    transition: all 3000ms cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    will-change: transform, width, height, top, left, position;
+  }
+
+  .logo-super-slow {
+    transition: all 2000ms cubic-bezier(0.23, 1, 0.32, 1) !important;
+    will-change: transform, width, height !important;
+  }
+
   /* 접근성: 스크린 리더 전용 텍스트 */
   .sr-only {
     position: absolute;
