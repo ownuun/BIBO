@@ -3,7 +3,6 @@
 import { HeroSection } from '@/components/sections/HeroSection';
 import { SubtitleSection } from '@/components/sections/SubtitleSection';
 import { QuotesSection } from '@/components/sections/QuotesSection';
-import { FinalSection } from '@/components/sections/FinalSection';
 
 export default function Home() {
   return (
@@ -16,11 +15,6 @@ export default function Home() {
 
       {/* 3. 4개 명언이 있는 노란 배경 */}
       <QuotesSection />
-
-
-
-      {/* 5. TESLA, META, GOOGLE, NVIDIA BIBO LET'S GO */}
-      <FinalSection />
     </main>
   );
 }

@@ -127,8 +127,15 @@
     @apply border-border;
   }
 
+  html {
+    /* 스크롤 복원 방지 */
+    scroll-behavior: smooth;
+  }
+
   body {
     @apply bg-background text-foreground;
+    /* 페이지 로드 시 스크롤 위치 초기화 */
+    overscroll-behavior: none;
   }
 }
 
@@ -181,12 +188,28 @@
 
     to {
       opacity: 0;
-      transform: translateY(-30px);
+      transform: translateY(30px);
     }
   }
 
   .animate-fade-out {
     animation: fade-out 0.8s ease-in forwards;
+  }
+
+  @keyframes fade-out-up {
+    from {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    to {
+      opacity: 0;
+      transform: translateY(-30px);
+    }
+  }
+
+  .animate-fade-out-up {
+    animation: fade-out-up 0.8s ease-in forwards;
   }
 
   @keyframes slide-up-fade-in {
@@ -267,6 +290,15 @@
     max-width: none;
   }
 
+  /* 타이핑 애니메이션 - 대기 시간 없음 (재시도용) */
+  .typing-animation-no-delay {
+    overflow: hidden;
+    white-space: nowrap;
+    width: 0;
+    animation: typing 1.3s steps(250, end) 0s forwards;
+    max-width: none;
+  }
+
   .typing-animation.show {
     animation: typing 4s steps(200, end) 0.5s forwards;
   }
@@ -292,6 +324,27 @@
     to {
       width: 100%;
     }
+  }
+
+  /* 아래에서 올라오는 페이드인 애니메이션 */
+  @keyframes slide-up-from-bottom {
+    from {
+      opacity: 0;
+      transform: translateY(50px);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .animate-slide-up-from-bottom {
+    animation: slide-up-from-bottom 1s ease-out forwards;
+  }
+
+  .animate-slide-up-from-bottom-delayed {
+    animation: slide-up-from-bottom 1s ease-out forwards;
   }
 
   @keyframes typing {
