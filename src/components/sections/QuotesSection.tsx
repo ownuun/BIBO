@@ -22,14 +22,7 @@ const quotes = [
 export function QuotesSection() {
     return (
         <section className="min-h-screen bg-secondary-500 flex items-center justify-center relative px-8">
-            {/* 좌측 상단 BIBO 로고 (작게) */}
-            <div className="absolute top-8 left-8 z-10">
-                <img
-                    src="/image/logo.png"
-                    alt="BIBO Logo"
-                    className="w-16 h-16 object-contain"
-                />
-            </div>
+
 
             {/* 좌측 상단 언어/지역 아이콘 */}
             <div className="absolute top-8 right-8 z-10">
