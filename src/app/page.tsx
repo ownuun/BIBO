@@ -11,12 +11,6 @@ export default function Home() {
 
       {/* 2. TWO KOREAN COLLEGE STUDENTS... 부제목 */}
       <SubtitleSection />
-
-      {/* (기존 QuotesSection 제거: 히어로 back1에서 타이핑으로 대체) */}
-
-
-
-      
     </main>
   );
 }

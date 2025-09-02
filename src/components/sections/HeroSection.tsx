@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useScrollLock } from '@/hooks/use-scroll-lock';
 
 export function HeroSection() {
     // Back1 및 사진 제어 상수
@@ -24,22 +25,44 @@ export function HeroSection() {
     const [back1OnlyTime, setBack1OnlyTime] = useState<number | null>(null);
     const [back3AnimatingOut, setBack3AnimatingOut] = useState(false);
     const [showFinalText, setShowFinalText] = useState(false);
+
     // Scroll-proportional fade and typing for quotes
     const [quotesFade, setQuotesFade] = useState(0);
     const [quotesTyping, setQuotesTyping] = useState(0);
     // Scroll-proportional opacity for photos
     const [photosOpacity, setPhotosOpacity] = useState(0);
 
+
+    // 스크롤 잠금 기능
+    const { lockScroll, unlockScroll } = useScrollLock();
+
+    // 페이지 로드 시 맨 위로 스크롤
     useEffect(() => {
+        // 페이지 로드 완료 후 맨 위로 스크롤
+        window.scrollTo(0, 0);
+
+        // 브라우저의 스크롤 복원 기능 비활성화
+        if ('scrollRestoration' in history) {
+            history.scrollRestoration = 'manual';
+        }
+    }, []);
+
+    useEffect(() => {
+        let scrollTimeout: NodeJS.Timeout;
+
         const handleScroll = () => {
-            const scrollY = window.scrollY;
+            // 디바운싱으로 스크롤 이벤트 최적화
+            clearTimeout(scrollTimeout);
+            scrollTimeout = setTimeout(() => {
+                const scrollY = window.scrollY;
 
-            // 스크롤이 50px 이상 되면 로고를 축소하고 이동
-            const scrolled = scrollY > 50;
-            setIsScrolled(scrolled);
+                // 스크롤 방향 감지
+                const direction = scrollY > lastScrollY ? 'down' : 'up';
+                setScrollDirection(direction);
+                setLastScrollY(scrollY);
 
-            // 스크롤 상태에 따라 콘텐츠 표시/숨김
-            setShowContent(scrolled);
+                // 위로 스크롤할 때는 잠금을 적용하지 않음 (조건부 잠금만 적용)
+
 
             // back1 진행도 및 명언 컨테이너 페이드/타이핑 진행도 계산
             const sectionStart = BACK1_START; // back1 시작 기준
@@ -90,10 +113,34 @@ export function HeroSection() {
                 if (timeElapsed >= 3000 && !photosAnimatingOut && !quotesAnimatingOut) { // 3초 이상 경과 (사진을 충분히 보여주기)
                     setPhotosAnimatingOut(true);
                     // 페이드아웃 애니메이션 완료 후 사진만 숨김 (배경은 유지)
+
                     setTimeout(() => {
+                        setShowBack3(false);
+                        setBack3AnimatingOut(false);
+                        setBack1OnlyTime(Date.now()); // back1으로 돌아간 시간 기록
+                    }, 1000); // 애니메이션 지속시간과 일치
+                }
+
+                // back1 배경에서 위로 스크롤할 때 사진과 명언 복원
+                if (quotesHidden && photosHidden && scrollY <= 1800 && backgroundOnlyTime) {
+                    const backgroundTimeElapsed = Date.now() - backgroundOnlyTime;
+                    if (backgroundTimeElapsed >= 500 || direction === 'up') { // 배경에서 0.5초 이상 대기했거나 위로 스크롤하면
+                        setQuotesHidden(false);
+                        setPhotosHidden(false);
+                        setBackgroundOnlyTime(null);
+                        setBack1OnlyTime(null); // back1 대기 시간도 초기화
+                        setQuotesAnimatingOut(false);
+                        setPhotosAnimatingOut(false);
+                    }
+                }
+
+                // 위로 스크롤할 때 사진 관련 상태들 초기화
+                if (direction === 'up' && scrollY <= 1000) {
+                    if (showPhotos) {
                         setShowPhotos(false);
                         setPhotosAnimatingOut(false);
                         setPhotosShowTime(null);
+
                         setPhotosHidden(true); // 사진을 영구적으로 숨김
                         setBackgroundOnlyTime(Date.now()); // 배경만 보이기 시작한 시간 기록
                         setBack1OnlyTime(Date.now()); // back1만 보이기 시작한 시간 기록
@@ -141,11 +188,28 @@ export function HeroSection() {
             }
 
             // 위에서 진행도 계산 및 상태 반영 완료
+
         };
 
         window.addEventListener('scroll', handleScroll);
-        return () => window.removeEventListener('scroll', handleScroll);
-    }, [typingComplete, showQuotes, showPhotos, photosAnimatingOut, quotesAnimatingOut, photosShowTime, quotesHidden, backgroundOnlyTime, showBack3, photosHidden, back1OnlyTime, back3AnimatingOut, showFinalText]);
+        return () => {
+            window.removeEventListener('scroll', handleScroll);
+            clearTimeout(scrollTimeout);
+        };
+    }, [typingComplete, showQuotes, showPhotos, photosAnimatingOut, quotesAnimatingOut, photosShowTime, quotesHidden, backgroundOnlyTime, showBack3, photosHidden, back1OnlyTime, back3AnimatingOut, showFinalText, canShowFinalText, finalTextAnimatingOut, typingResetCounter, lastScrollY, lockScroll, unlockScroll]);
+
+    // 타이핑 애니메이션 중 자동 스크롤 잠금
+    useEffect(() => {
+        if (showContent && !typingComplete && scrollDirection === 'down') {
+            // 타이핑 시작 시 스크롤 잠금 (아래로 스크롤할 때만)
+            lockScroll();
+        } else if (typingComplete) {
+            // 타이핑 완료 시 스크롤 해제
+            unlockScroll();
+        }
+    }, [showContent, typingComplete, scrollDirection, lockScroll, unlockScroll]);
+
+
 
 
 
@@ -174,7 +238,8 @@ export function HeroSection() {
                         {/* 타이핑 텍스트 */}
                         <div className="absolute top-10 left-1/2 transform -translate-x-[700px] w-full max-w-8xl px-2">
                             <div
-                                className="typing-animation flex items-center gap-2"
+                                key={`typing-${typingResetCounter}`}
+                                className={`${isFirstTypingAttempt ? 'typing-animation' : 'typing-animation-no-delay'} flex items-center gap-2`}
                                 onAnimationEnd={() => setTypingComplete(true)}
                             >
                                 <span className={`text-2xl md:text-4xl lg:text-5xl font-colored-crayons ${showQuotes ? 'text-white' : 'text-black'
@@ -253,6 +318,7 @@ export function HeroSection() {
                                     })()}
                                 </blockquote>
                             </div>
+
 
                             {/* 두 번째 명언 - 우상단 */}
                             <div className="absolute top-[260px] right-[400px] max-w-2xl">
@@ -369,10 +435,12 @@ export function HeroSection() {
                             ))}
                         </div>
 
+
                         {/* 사진들 - 명언을 덮도록 등장 */}
                         {showPhotos && (
                             <>
                                 {/* 첫 번째 사진 - 스티브 잡스 */}
+
                                 <div className={`absolute top-[150px] left-[200px] z-20 ${photosAnimatingOut ? 'animate-fade-out' : ''}`}
                                      style={{ opacity: photosAnimatingOut ? undefined : photosOpacity }}>
                                     <div className="aspect-video bg-white rounded-lg overflow-hidden shadow-2xl w-96 lg:w-[600px]">
@@ -385,6 +453,7 @@ export function HeroSection() {
                                 </div>
 
                                 {/* 두 번째 사진 - 엘론 머스크 */}
+
                                 <div className={`absolute top-[150px] right-[300px] z-20 ${photosAnimatingOut ? 'animate-fade-out' : ''}`}
                                      style={{ opacity: photosAnimatingOut ? undefined : photosOpacity }}>
                                     <div className="aspect-video bg-white rounded-lg overflow-hidden shadow-2xl w-96 lg:w-[600px]">
@@ -397,6 +466,7 @@ export function HeroSection() {
                                 </div>
 
                                 {/* 세 번째 사진 - 마크 저커버그 */}
+
                                 <div className={`absolute bottom-[30px] left-[200px] z-20 ${photosAnimatingOut ? 'animate-fade-out' : ''}`}
                                      style={{ opacity: photosAnimatingOut ? undefined : photosOpacity }}>
                                     <div className="aspect-video bg-white rounded-lg overflow-hidden shadow-2xl w-96 lg:w-[600px]">
@@ -446,23 +516,29 @@ export function HeroSection() {
                     {/* 중앙 텍스트 */}
                     {showFinalText && (
                         <div className="relative z-10 text-center">
-                            <div className="typing-animation-final">
-                                <h1 className="text-white font-colored-crayons text-4xl md:text-6xl lg:text-7xl leading-tight">
+                            <div className={`${finalTextAnimatingOut ? 'animate-fade-out' : 'animate-slide-up-from-bottom-delayed'}`}>
+                                <h1 className="text-white font-colored-crayons text-4xl md:text-6xl lg:text-7xl leading-normal">
                                     TESLA, META, GOOGLE, NVIDIA
                                     <br />
-                                    <span className="bg-gradient-to-r from-red-500 via-green-500 via-blue-500 to-purple-500 bg-clip-text text-transparent text-5xl md:text-7xl lg:text-9xl">
+                                    <span className="bg-gradient-to-r from-red-500 via-green-500 via-blue-500 to-purple-500 bg-clip-text text-transparent text-5xl md:text-7xl lg:text-9xl inline-block py-8">
                                         BIBO
                                     </span>{' '}
                                     <span className="text-5xl md:text-7xl lg:text-9xl">LET'S GO</span>{' '}
-                                    <span className="inline-block text-6xl md:text-8xl lg:text-9xl">🚀</span>
+                                    <img
+                                        src="/image/rocket.png"
+                                        alt="Rocket"
+                                        className="inline-block w-14 h-14 md:w-20 md:h-20 lg:w-28 lg:h-28 object-contain  -mt-12"
+                                    />
                                 </h1>
                             </div>
                         </div>
                     )}
                 </section>
 
+
+
                 {/* 스크롤 공간 확보를 위한 더미 div */}
-                <div className="h-[300vh]"></div>
+                <div className="h-[700vh]"></div>
             </div>
         </>
     );
