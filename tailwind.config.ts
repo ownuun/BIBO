@@ -72,6 +72,7 @@ const config = {
       // BIBO 타이포그래피 시스템
       fontFamily: {
         'crayons': ['CF Crayons', 'cursive', 'system-ui', 'sans-serif'], // BIBO 로고용 크레용 폰트
+        'colored-crayons': ['Colored Crayons', 'cursive', 'system-ui', 'sans-serif'], // 컬러 크레용 폰트
         'heading': ['var(--font-geist-sans)', 'system-ui', 'sans-serif'],
         'body': ['var(--font-geist-sans)', 'system-ui', 'sans-serif'],
         'mono': ['var(--font-geist-mono)', 'Consolas', 'monospace'],
