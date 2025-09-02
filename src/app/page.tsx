@@ -15,10 +15,6 @@ export default function Home() {
 
       {/* 3. 4개 명언이 있는 노란 배경 */}
       <QuotesSection />
-
-
-
-      
     </main>
   );
 }
