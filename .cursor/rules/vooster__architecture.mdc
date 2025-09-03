@@ -1,0 +1,148 @@
+---
+description:
+globs:
+alwaysApply: true
+---
+# Technical Requirements Document (TRD)
+
+## 1. Executive Technical Summary
+- **Project Overview**: 본 프로젝트는 Next.js 기반의 싱글 페이지 랜딩 사이트를 구축하여 팀의 정체성과 역량을 임팩트 있게 전달하는 것을 목표로 한다. 스크롤 내비게이션과 애니메이션을 활용하여 사용자 경험을 극대화하고, 잠재적 이해 관계자에게 기억에 남는 브랜드 경험을 제공한다.
+- **Core Technology Stack**: Next.js 15, React 19, TypeScript, TailwindCSS, shadcn/ui, lucide-react, @tanstack/react-query, Supabase(PostgreSQL), date-fns, es-toolkit
+- **Key Technical Objectives**: 2초 이내의 LCP(Largest Contentful Paint)를 달성하고, Lighthouse 성능 점수 90점 이상을 유지하며, 다양한 디바이스에서 반응형 레이아웃을 제공한다. 또한, WCAG 2.1 AA 수준의 접근성을 준수한다.
+- **Critical Technical Assumptions**: 안정적인 인터넷 환경을 가정하며, 최신 브라우저(Chrome, Safari, Edge, Firefox)를 사용하는 사용자를 대상으로 한다.
+
+## 2. Tech Stack
+
+| Category          | Technology / Library        | Reasoning (Why it's chosen for this project) |
+| ----------------- | --------------------------- | -------------------------------------------- |
+| Framework         | Next.js 15                  | 서버 사이드 렌더링 (SSR) 및 정적 사이트 생성 (SSG)을 지원하여 초기 로딩 속도 개선 및 SEO 최적화. 빠른 개발 속도 및 생산성 향상. |
+| UI Library        | React 19                    | 컴포넌트 기반 아키텍처로 재사용성 및 유지보수 용이. 풍부한 생태계 및 커뮤니티 지원. |
+| Language          | TypeScript                  | 정적 타입 검사를 통해 코드 안정성 향상 및 개발 생산성 증대. |
+| Styling           | TailwindCSS                 | 유틸리티 우선 CSS 프레임워크로 빠른 스타일링 및 반응형 디자인 구현. 일관된 디자인 시스템 유지. |
+| UI Components     | shadcn/ui                   | 재사용 가능한 UI 컴포넌트 제공. TailwindCSS와 호환되어 스타일링 용이. |
+| Icons             | lucide-react                | 고품질의 벡터 아이콘 제공. React 컴포넌트 형태로 사용 가능. |
+| Data Fetching     | @tanstack/react-query       | 서버 상태 관리 및 데이터 패칭 라이브러리. 캐싱, 재시도, 폴링 등 다양한 기능 제공. |
+| Backend/Database  | Supabase(PostgreSQL)        | BaaS (Backend as a Service) 플랫폼으로 인증, 데이터베이스, 스토리지 등 다양한 기능 제공. PostgreSQL 데이터베이스를 사용하여 데이터 안정성 확보. |
+| Date Manipulation | date-fns                    | 날짜 및 시간 관련 기능 제공. 경량화된 라이브러리로 번들 크기 감소. |
+| Utility Library   | es-toolkit                  | 유용한 유틸리티 함수 제공. 코드 재사용성 및 생산성 향상. |
+
+## 3. System Architecture Design
+
+### Top-Level building blocks
+- **Frontend (Next.js Application)**:
+    - **Components**: UI 컴포넌트 (히어로, 스토리, 명언, 사진, 파이널 섹션) 및 재사용 가능한 컴포넌트 (버튼, 로고 등)
+    - **Pages**: 각 섹션별 페이지 구성 및 라우팅 관리.
+    - **Hooks**: 데이터 패칭 및 상태 관리를 위한 React Hooks.
+    - **Styles**: TailwindCSS를 활용한 스타일링 및 반응형 디자인.
+- **Backend (Supabase)**:
+    - **Authentication**: 사용자 인증 및 권한 관리 (향후 확장 고려).
+    - **Database (PostgreSQL)**: 명언, 사진 등 콘텐츠 관리 (향후 CMS화 고려).
+    - **Storage**: 이미지 및 기타 정적 파일 저장.
+- **Hosting (Vercel/Netlify)**:
+    - **Deployment**: Frontend 및 Backend 코드 배포.
+    - **CDN**: 콘텐츠 전송 네트워크를 통한 빠른 로딩 속도 제공.
+
+### Top-Level Component Interaction Diagram
+
+```mermaid
+graph TD
+    A[Frontend (Next.js)] --> B[Backend (Supabase)]
+    A --> C[Hosting (Vercel/Netlify)]
+    B --> D[Database (PostgreSQL)]
+    B --> E[Storage]
+```
+
+- **Frontend (Next.js) <-> Backend (Supabase)**: Frontend에서 필요한 데이터를 Supabase API를 통해 요청하고 응답을 받아 UI에 반영한다.
+- **Frontend (Next.js) <-> Hosting (Vercel/Netlify)**: Frontend 코드는 Vercel/Netlify에 배포되어 CDN을 통해 사용자에게 제공된다.
+- **Backend (Supabase) <-> Database (PostgreSQL)**: Supabase는 PostgreSQL 데이터베이스에 데이터를 저장하고 관리한다.
+- **Backend (Supabase) <-> Storage**: Supabase는 Storage에 이미지 및 기타 정적 파일을 저장하고 관리한다.
+
+### Code Organization & Convention
+**Domain-Driven Organization Strategy**
+- **Domain Separation**: 섹션별 (히어로, 스토리, 명언, 사진, 파이널) 컴포넌트 및 관련 로직을 분리하여 관리.
+- **Layer-Based Architecture**: UI 컴포넌트, 데이터 패칭 로직, 유틸리티 함수를 분리하여 관리.
+- **Feature-Based Modules**: 각 섹션별 기능 (애니메이션, 데이터 패칭 등)을 모듈화하여 관리.
+- **Shared Components**: 재사용 가능한 컴포넌트 (버튼, 로고 등) 및 유틸리티 함수를 별도 모듈로 관리.
+
+**Universal File & Folder Structure**
+```
+/
+├── components/
+│   ├── HeroSection.tsx
+│   ├── StorySection.tsx
+│   ├── QuoteSection.tsx
+│   ├── ImageSection.tsx
+│   ├── FinalSection.tsx
+│   ├── ui/
+│   │   ├── Button.tsx
+│   │   ├── Logo.tsx
+│   │   └── ...
+│   └── ...
+├── pages/
+│   └── index.tsx
+├── styles/
+│   └── globals.css
+├── utils/
+│   ├── api.ts
+│   ├── animation.ts
+│   └── ...
+├── public/
+│   ├── images/
+│   └── ...
+├── .env.local
+├── next.config.js
+├── package.json
+├── tsconfig.json
+└── README.md
+```
+
+### Data Flow & Communication Patterns
+- **Client-Server Communication**: Next.js API Routes 또는 Supabase API를 사용하여 데이터 요청 및 응답 처리.
+- **Database Interaction**: Supabase 클라이언트를 사용하여 PostgreSQL 데이터베이스에 접근 및 쿼리 실행.
+- **External Service Integration**: 외부 API (예: 이미지 최적화 API)를 사용하는 경우, API 키 및 인증 정보를 안전하게 관리.
+- **Real-time Communication**: 실시간 데이터 업데이트가 필요한 경우, Supabase Realtime 또는 WebSocket 사용 (본 프로젝트에서는 필요 없음).
+- **Data Synchronization**: 데이터 일관성을 유지하기 위해 낙관적 업데이트 또는 비관적 업데이트 전략 사용.
+
+## 4. Performance & Optimization Strategy
+- **Image Optimization**: `next/image` 컴포넌트를 사용하여 이미지 최적화 (WebP, lazy loading).
+- **Code Splitting**: Next.js의 자동 코드 스플리팅 기능을 활용하여 초기 로딩에 필요한 코드만 로드.
+- **Caching**: @tanstack/react-query를 사용하여 API 응답 캐싱 및 브라우저 캐싱 활용.
+- **Minification & Compression**: Terser 및 Gzip/Brotli 압축을 사용하여 번들 크기 최소화.
+- **Animation Optimization**: CSS transform 및 IntersectionObserver를 사용하여 애니메이션 성능 최적화.
+
+## 5. Implementation Roadmap & Milestones
+### Phase 1: Foundation (MVP Implementation)
+- **Core Infrastructure**: Next.js 프로젝트 설정, TailwindCSS 설정, Supabase 연동.
+- **Essential Features**: 히어로, 스토리 섹션 구현 및 기본 스타일링.
+- **Basic Security**: 환경 변수 관리 및 기본적인 보안 설정.
+- **Development Setup**: 개발 환경 구축 및 Git 저장소 설정.
+- **Timeline**: Day 4~9
+
+### Phase 2: Feature Enhancement
+- **Advanced Features**: 명언·사진·파이널 섹션 구현 및 애니메이션 적용, 반응형 레이아웃 구현.
+- **Performance Optimization**: 이미지 최적화, 코드 스플리팅, 캐싱 적용.
+- **Enhanced Security**: 추가적인 보안 설정 및 취약점 점검.
+- **Monitoring Implementation**: Lighthouse를 사용하여 성능 측정 및 개선.
+- **Timeline**: Day 10~15
+
+## 6. Risk Assessment & Mitigation Strategies
+### Technical Risk Analysis
+- **Technology Risks**: 과도한 애니메이션으로 인한 성능 저하.
+    - **Mitigation Strategies**: IntersectionObserver + CSS transform 사용, 타임라인 최적화.
+- **Performance Risks**: 이미지 용량으로 인한 로딩 지연.
+    - **Mitigation Strategies**: `next/image` + WebP, lazy loading.
+- **Security Risks**: XSS 공격 및 CSRF 공격 가능성.
+    - **Mitigation Strategies**: 입력 값 검증 및 CSRF 토큰 사용.
+- **Integration Risks**: Supabase 서비스 장애 발생 가능성.
+    - **Mitigation Strategies**: Supabase 상태 페이지 확인 및 대체 API 사용 고려.
+
+### Project Delivery Risks
+- **Timeline Risks**: 개발 일정 지연 가능성.
+    - **Contingency Plans**: 우선순위가 낮은 기능 제거 및 개발 인력 추가.
+- **Resource Risks**: 팀원의 기술 부족으로 인한 개발 어려움.
+    - **Contingency Plans**: 외부 전문가 자문 및 온라인 교육 활용.
+- **Quality Risks**: 코드 품질 저하 및 버그 발생 가능성.
+    - **Contingency Plans**: 코드 리뷰 및 자동화 테스트 도입.
+- **Deployment Risks**: 배포 과정에서의 오류 발생 가능성.
+    - **Contingency Plans**: 배포 전 테스트 환경에서 충분한 테스트 진행.
+
