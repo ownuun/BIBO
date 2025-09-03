@@ -165,7 +165,7 @@
   @keyframes fade-in {
     from {
       opacity: 0;
-      transform: translateY(30px);
+      transform: translateY(100px);
     }
 
     to {
@@ -197,7 +197,7 @@
   }
 
   .animate-fade-in {
-    animation: fade-in 1s ease-out;
+    animation: fade-in 1.5s ease-out;
   }
 
   @keyframes fade-out {
@@ -272,6 +272,85 @@
     animation: typewriter 2s steps(40, end);
   }
 
+  /* 명언 타이핑 애니메이션 */
+  .quote-typing {
+    overflow: hidden;
+    white-space: nowrap;
+    width: 0;
+    animation: quote-typing 1s steps(50, end) forwards;
+  }
+
+  /* 4줄 명언 타이핑 애니메이션 */
+  .quote-typing-multiline {
+    overflow: hidden;
+  }
+
+  .quote-typing-multiline .line {
+    display: block;
+    overflow: hidden;
+    white-space: nowrap;
+    width: 0;
+    animation: quote-typing-line 0.5s steps(30, end) forwards;
+  }
+
+  .quote-typing-multiline .line:nth-child(1) {
+    animation-delay: 0s;
+  }
+
+  .quote-typing-multiline .line:nth-child(2) {
+    animation-delay: 0.4s;
+  }
+
+  .quote-typing-multiline .line:nth-child(3) {
+    animation-delay: 0.8s;
+  }
+
+  .quote-typing-multiline .line:nth-child(4) {
+    animation-delay: 1.2s;
+  }
+
+  @keyframes quote-typing {
+    from {
+      width: 0;
+    }
+
+    to {
+      width: 100%;
+    }
+  }
+
+  @keyframes quote-typing-line {
+    from {
+      width: 0;
+    }
+
+    to {
+      width: 100%;
+    }
+  }
+
+  /* 전문가 스타일 텍스트 축소 이동 애니메이션 */
+  @keyframes shrink-and-move {
+    0% {
+      transform: translateX(-50%) translateY(0) scale(1);
+      opacity: 1;
+    }
+
+    50% {
+      transform: translateX(-50%) translateY(-20px) scale(0.8);
+      opacity: 0.8;
+    }
+
+    100% {
+      transform: translateX(-50%) translateY(-40px) scale(0.6);
+      opacity: 1;
+    }
+  }
+
+  .animate-shrink-and-move {
+    animation: shrink-and-move 1.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+  }
+
   /* BIBO 로고 애니메이션 최적화 */
   .logo-transition {
     transition: all 1500ms cubic-bezier(0.25, 0.46, 0.45, 0.94);
@@ -299,6 +378,11 @@
   .logo-super-slow {
     transition: all 2000ms cubic-bezier(0.23, 1, 0.32, 1) !important;
     will-change: transform, width, height !important;
+  }
+
+  .text-super-slow {
+    transition: all 2000ms cubic-bezier(0.23, 1, 0.32, 1) !important;
+    will-change: transform, scale !important;
   }
 
   /* 타이핑 애니메이션 */
@@ -481,14 +565,10 @@
     transform: translateY(-120vh) scaleX(1) scaleY(1);
     opacity: 0;
     will-change: transform, opacity;
-    backface-visibility: hidden;
-    -webkit-backface-visibility: hidden;
-    transform-style: preserve-3d;
-    -webkit-transform-style: preserve-3d;
   }
 
   .final-drop-container.is-visible .drop-item {
-    animation: drop-bounce 1.4s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+    animation: drop-bounce 1.2s ease-out forwards;
   }
 
   /* 스태거 딜레이 */
@@ -497,15 +577,15 @@
   }
 
   .final-drop-container.is-visible .item-2 {
-    animation-delay: 100ms;
+    animation-delay: 120ms;
   }
 
   .final-drop-container.is-visible .item-3 {
-    animation-delay: 180ms;
+    animation-delay: 220ms;
   }
 
   .final-drop-container.is-visible .item-4 {
-    animation-delay: 250ms;
+    animation-delay: 300ms;
   }
 
   @keyframes drop-bounce {
@@ -514,25 +594,24 @@
       opacity: 0;
     }
 
-    50% {
-      transform: translateY(0) scaleX(1.08) scaleY(0.85);
+    60% {
+      transform: translateY(0) scaleX(1.05) scaleY(0.9);
+      /* 충돌 스쿼시 */
       opacity: 1;
     }
 
-    65% {
-      transform: translateY(-24px) scaleX(0.96) scaleY(1.04);
+    72% {
+      transform: translateY(-32px) scaleX(0.98) scaleY(1.02);
+      /* 첫 반동 */
     }
 
-    78% {
-      transform: translateY(0) scaleX(1.02) scaleY(0.98);
+    84% {
+      transform: translateY(0) scaleX(1.02) scaleY(0.99);
     }
 
-    88% {
-      transform: translateY(-8px) scaleX(0.99) scaleY(1.01);
-    }
-
-    95% {
-      transform: translateY(0) scaleX(1.005) scaleY(0.995);
+    92% {
+      transform: translateY(-12px) scaleX(0.995) scaleY(1.01);
+      /* 두 번째 반동 */
     }
 
     100% {
@@ -541,12 +620,102 @@
     }
   }
 
+  /* 간단한 페이드 애니메이션 - Stage 6에서 Stage 7로 전환 */
+  .fade-to-header {
+    animation: simple-fade-to-header 1s ease-in-out forwards;
+  }
+
+  @keyframes simple-fade-to-header {
+    0% {
+      opacity: 1;
+      transform: scale(1) translateY(0);
+    }
+
+    50% {
+      opacity: 0;
+      transform: scale(0.95) translateY(-10px);
+    }
+
+    100% {
+      opacity: 1;
+      transform: scale(1) translateY(0);
+    }
+  }
+
+  /* 페이드된 헤더 텍스트 등장 - 기존 텍스트가 페이드된 후 */
+  .fade-header-appear {
+    opacity: 0;
+    animation: fade-header-appear 0.8s ease-out 1s forwards;
+  }
+
+  @keyframes fade-header-appear {
+    0% {
+      opacity: 0;
+      transform: translateY(20px) scale(0.9);
+    }
+
+    50% {
+      opacity: 0.7;
+      transform: translateY(10px) scale(0.95);
+    }
+
+    100% {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+
+  /* 페이드된 헤더 아이템들 - 순차적 등장 */
+  .fade-header-item {
+    opacity: 0;
+    transform: translateY(15px) scale(0.95);
+    animation: fade-header-item-appear 0.6s ease-out forwards;
+  }
+
+  @keyframes fade-header-item-appear {
+    0% {
+      opacity: 0;
+      transform: translateY(15px) scale(0.95);
+    }
+
+    60% {
+      opacity: 0.8;
+      transform: translateY(-3px) scale(1.02);
+    }
+
+    100% {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+
+
+
+
+
   /* 모션 감소 접근성 */
   @media (prefers-reduced-motion: reduce) {
     .final-drop-container .drop-item {
       transform: none !important;
       opacity: 1 !important;
       animation: none !important;
+    }
+
+    .fade-to-header {
+      animation: none !important;
+      transform: none !important;
+      opacity: 1 !important;
+    }
+
+    .fade-header-appear,
+    .fade-header-item {
+      animation: none !important;
+      opacity: 1 !important;
+      transform: none !important;
+    }
+
+    .text-shrink-to-header {
+      transform: none !important;
     }
   }
 }
